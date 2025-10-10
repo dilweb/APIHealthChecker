@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: apihealth_pg
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: apihealth_app
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: app
+      DB_PASS: app
+      DB_NAME: app
+      API_DEBUG: "true"
+      PYTHONPATH: /app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+
+    # Убрать --reload в продакшене
+    command: >
+      bash -c "
+        alembic upgrade head &&
+        uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app 
+      "
+
+  adminer:
+    image: adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  pg_data:

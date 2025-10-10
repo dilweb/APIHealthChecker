@@ -1,0 +1,9 @@
+fastapi==0.118.0
+uvicorn[standard]
+httpx
+pydantic>=2,<3
+pydantic-settings
+sqlalchemy[asyncio]>=2.0
+asyncpg
+alembic
+email-validator

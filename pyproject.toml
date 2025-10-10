@@ -1,0 +1,13 @@
+[project]
+name = "uptime-lite"
+version = "0.1.0"
+dependencies = [
+  "fastapi",
+  "uvicorn[standard]",
+  "httpx",
+  "pydantic>=2",
+  "pydantic-settings",
+  "sqlalchemy[asyncio]>=2.0",
+  "asyncpg",
+  "alembic",
+]
