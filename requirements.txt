@@ -7,3 +7,5 @@ sqlalchemy[asyncio]>=2.0
 asyncpg
 alembic
 email-validator
+jose
+passlib

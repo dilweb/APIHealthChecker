@@ -1,5 +1,7 @@
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Literal
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -19,6 +21,7 @@ class Settings(BaseSettings):
         database_url (str): Assembled async connection URL for SQLAlchemy with asyncpg driver.
     """
 
+    # ========================== Data Base ========================== #
     DB_HOST: str
     DB_PORT: int
     DB_USER: str
@@ -31,6 +34,14 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+
+
+    # ========================== JWT ========================== #
+    JWT_SECRET: str
+    JWT_ALG: Literal["HS256"] = "HS256"
+    ACCESS_EXPIRES_MIN: int = 15
+    REFRESH_EXPIRES_DAYS: int = 7
+
 
 settings = Settings()
 
