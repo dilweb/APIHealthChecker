@@ -7,5 +7,7 @@ sqlalchemy[asyncio]>=2.0
 asyncpg
 alembic
 email-validator
-jose
-passlib
+python-jose[cryptography]
+passlib[argon2]
+python-multipart
+python-multipart

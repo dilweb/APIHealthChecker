@@ -1,4 +1,4 @@
-from sqlalchemy import String, Integer, DateTime
+from sqlalchemy import String, Integer, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from app.core.db import Base
@@ -32,12 +32,22 @@ class User(Base):
         nullable=False,
         doc="Электронная почта для оповещений и идентификации."
     )
+    hashed_password: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        doc="Хэш пароля пользователя."
+    )
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         doc="Метка времени создания записи."
     )
-
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        doc="Статус активности пользователя."
+    )
     monitors = relationship(
         "Monitor",
         back_populates="user",

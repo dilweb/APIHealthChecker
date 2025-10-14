@@ -39,8 +39,8 @@ class Settings(BaseSettings):
     # ========================== JWT ========================== #
     JWT_SECRET: str
     JWT_ALG: Literal["HS256"] = "HS256"
-    ACCESS_EXPIRES_MIN: int = 15
-    REFRESH_EXPIRES_DAYS: int = 7
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
 
 settings = Settings()

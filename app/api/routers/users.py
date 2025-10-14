@@ -1,96 +1,102 @@
+"""
+Users HTTP router.
+Keeps HTTP/auth/transactions here; delegates DB work to the repository.
+"""
+
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from app.core.db import get_db
-from app.models.user import User
-from app.api.schemas.user import UserCreate, UserUpdate, UserOut
+from app.core.security import hash_password
+from app.schemas.user import (
+    UserRegisterIn,
+    UserUpdateIn,
+    UserOut,
+)
+from app.models import User
+from app.repositories import users as repo
+from app.api.deps.auth import get_current_active_user
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
-@router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-async def create_user(payload: UserCreate, db: AsyncSession = Depends(get_db)) -> UserOut:
+@router.get("/me", response_model=UserOut)
+async def get_own_profile(
+    current_user: User = Depends(get_current_active_user),
+) -> UserOut:
     """
-    Создать пользователя.
-    Уникальные поля: tg_id, email.
+    Get current user's profile.
     """
-    res = User(tg_id=payload.tg_id, email=payload.email)
-    db.add(res)
-
-    try:
-        await db.commit()
-    except IntegrityError:
-        await db.rollback()
-        raise HTTPException(status_code=409, detail="User with this tg_id or email already exists")
-    await db.refresh(res)
-    return UserOut.model_validate(res)
-
-
-@router.get("/", response_model=List[UserOut])
-async def list_users(
-        db: AsyncSession = Depends(get_db),
-        limit: int = 50,
-        offset: int = 0,
-) -> List[UserOut]:
-    """
-    Получить список всех пользователей с пагинацией.
-    """
-    res = await db.execute(select(User).order_by(User.id).limit(limit).offset(offset))
-    rows = res.scalars().all()
-    return [UserOut.model_validate(row) for row in rows]
+    return UserOut.model_validate(current_user)
 
 
 @router.get("/{user_id}", response_model=UserOut)
-async def get_user(user_id: int, db: AsyncSession = Depends(get_db)) -> UserOut:
+async def get_user_by_id(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> UserOut:
     """
-    Получить пользователя по ID.
+    Get user by id.
+    Only allows admin users to get other users' profiles.
     """
-    res = await db.get(User, user_id)
-    if not res:
+    # Пользователь может запросить только свой профиль по ID,
+    # либо администратор может запросить любой.
+    # (Логика для администратора пока не реализована, поэтому проверка строгая)
+    if user_id != current_user.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "You can only view your own profile")
+
+    user = await repo.get_by_id(db, user_id=user_id)
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return UserOut.model_validate(res)
+
+    return UserOut.model_validate(user)
 
 
-@router.patch("/{user_id}", response_model=UserOut)
-async def update_user(user_id: int, payload: UserUpdate, db: AsyncSession = Depends(get_db)) -> UserOut:
+@router.patch("/me", response_model=UserOut)
+async def update_own_profile(
+    payload: UserUpdateIn,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> UserOut:
     """
-    Частичное обновление пользователя.
-    Сейчас поддерживается смена email.
+    Partially update current user's fields.
     """
-    res = await db.get(User, user_id)
-    if not res:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    data = payload.model_dump(exclude_unset=True, exclude_none=True) # игнорируем пустые поля и поля со значением None
-
-    if not data:
-        return UserOut.model_validate(res)
-
-    for key, value in data.items():
-        setattr(res, key, value)
+    fields = payload.model_dump(exclude_unset=True)
+    if not fields:
+        # Если нет полей для обновления, просто возвращаем текущего пользователя
+        return UserOut.model_validate(current_user)
 
     try:
+        # Обновляем текущего пользователя (current_user.id)
+        updated_user = await repo.patch(db, user_id=current_user.id, fields=fields)
         await db.commit()
     except IntegrityError:
         await db.rollback()
-        raise HTTPException(status_code=409, detail="User with this tg_id or email already exists")
-    await db.refresh(res)
-    return UserOut.model_validate(res)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User with this tg_id or email already exists",
+        )
+    
+    if not updated_user:
+         raise HTTPException(status_code=404, detail="User not found")
+
+    return UserOut.model_validate(updated_user)
 
 
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)) -> None:
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_own_profile(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> None:
     """
-    Удалить пользователя по ID.
+    Delete current user's profile.
     """
-    res = await db.get(User, user_id)
-    if not res:
+    deleted = await repo.delete_by_id(db, user_id=current_user.id)
+    if not deleted:
         raise HTTPException(status_code=404, detail="User not found")
-
-    await db.delete(res)
     await db.commit()
     return None

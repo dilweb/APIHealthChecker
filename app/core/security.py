@@ -5,7 +5,7 @@ from app.core.settings import settings
 
 # создаем контекст с Argon2id
 pwd_context = CryptContext(
-    schemes=["argon2id"],
+    schemes=["bcrypt"],
     deprecated="auto",
     argon2__memory_cost=65536,  # 64 MB
     argon2__time_cost=3,
@@ -34,12 +34,19 @@ def _exp(minutes: int = 15) -> int:
 
 
 def create_access_token(subject: str | int) -> str:
-    payload = {"sub": str(subject), "type": "access", "exp": _exp(settings.ACCESS_EXPIRES_MIN)}
-    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALG)
+    to_encode = {
+        "sub": str(subject),
+        "type": "access",
+        "exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    }
+    return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALG)
 
 
 def create_refresh_token(subject: str | int) -> str:
-    expires = datetime.now(tz=timezone.utc) + timedelta(days=settings.REFRESH_EXPIRES_DAYS)
-    payload = {"sub": str(subject), "type": "refresh", "exp": int(expires.timestamp())}
-    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALG)
+    to_encode = {
+        "sub": str(subject),
+        "type": "refresh",
+        "exp": datetime.now(tz=timezone.utc) + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
+    }
+    return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALG)
 
