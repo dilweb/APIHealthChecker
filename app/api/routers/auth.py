@@ -77,6 +77,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
         refresh_token=create_refresh_token(user.id),
     )
 
+
 @router.post("/refresh", response_model=Token)
 async def refresh_token(
     payload: TokenRefresh,
@@ -94,7 +95,7 @@ async def refresh_token(
             settings.JWT_SECRET,
             algorithms=[settings.JWT_ALG]
         )
-        token_payload = TokenPayload(**payload_data)
+        token_payload = TokenPayload.model_validate(payload_data)
         if token_payload.type != "refresh":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

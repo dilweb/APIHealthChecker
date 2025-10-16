@@ -12,6 +12,7 @@ class Token(BaseModel):
 class TokenRefresh(BaseModel):
     refresh_token: str
 
+
 class TokenPayload(BaseModel):
     """Полезная нагрузка внутри JWT. Декодируем и валидируем ей."""
     sub: str               # user_id как строка, приводим к int по месту
