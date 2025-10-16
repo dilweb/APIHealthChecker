@@ -4,6 +4,7 @@ from sqlalchemy.sql import func
 from app.core.db import Base
 from fastapi_users.db import SQLAlchemyBaseUserTable
 
+
 class User(Base, SQLAlchemyBaseUserTable):
     """
     Модель пользователя.
