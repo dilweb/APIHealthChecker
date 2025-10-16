@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from app.core.db import get_db
-from app.api.deps.auth import get_current_user
+
 from app.schemas.monitor import MonitorCreate, MonitorUpdate, MonitorOut
 from app.schemas.user import UserOut
 from app.repositories import monitors as repo
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api/monitors", tags=["monitors"])
 async def create_monitor(
     payload: MonitorCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: UserOut = Depends(get_current_user),
+    current_user: UserOut = Depends(...),
 ) -> MonitorOut:
     """
     Create a new monitor for the current user.
@@ -64,7 +64,7 @@ async def create_monitor(
 @router.get("/", response_model=List[MonitorOut])
 async def list_monitors(
     db: AsyncSession = Depends(get_db),
-    current_user: UserOut = Depends(get_current_user),
+    current_user: UserOut = Depends(...),
     limit: int = 25,
     offset: int = 0,
 ) -> List[MonitorOut]:
@@ -86,7 +86,7 @@ async def list_monitors(
 async def get_monitor(
     monitor_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: UserOut = Depends(get_current_user),
+    current_user: UserOut = Depends(...),
 ) -> MonitorOut:
     """
     Get a single monitor by id limited to current user.
@@ -111,7 +111,7 @@ async def update_monitor(
     monitor_id: int,
     payload: MonitorUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: UserOut = Depends(get_current_user),
+    current_user: UserOut = Depends(...),
 ) -> MonitorOut:
     """
     Partially update a monitor owned by the current user.
@@ -149,7 +149,7 @@ async def update_monitor(
 async def delete_monitor(
     monitor_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: UserOut = Depends(get_current_user),
+    current_user: UserOut = Depends(...),
 ) -> None:
     """
     Delete a monitor owned by the current user.

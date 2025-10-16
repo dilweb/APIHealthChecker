@@ -18,14 +18,14 @@ from app.schemas.user import (
 )
 from app.models import User
 from app.repositories import users as repo
-from app.api.deps.auth import get_current_active_user
+
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
 @router.get("/me", response_model=UserOut)
 async def get_own_profile(
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(...),
 ) -> UserOut:
     """
     Get current user's profile.
@@ -37,7 +37,7 @@ async def get_own_profile(
 async def get_user_by_id(
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(...),
 ) -> UserOut:
     """
     Get user by id.
@@ -60,7 +60,7 @@ async def get_user_by_id(
 async def update_own_profile(
     payload: UserUpdateIn,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(...),
 ) -> UserOut:
     """
     Partially update current user's fields.
@@ -90,7 +90,7 @@ async def update_own_profile(
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_own_profile(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(...),
 ) -> None:
     """
     Delete current user's profile.
