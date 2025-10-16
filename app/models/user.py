@@ -2,9 +2,9 @@ from sqlalchemy import String, Integer, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from app.core.db import Base
+from fastapi_users.db import SQLAlchemyBaseUserTable
 
-
-class User(Base):
+class User(Base, SQLAlchemyBaseUserTable):
     """
     Модель пользователя.
 
