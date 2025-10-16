@@ -10,4 +10,4 @@ email-validator
 python-jose[cryptography]
 passlib[argon2]
 python-multipart
-python-multipart
+fastapi-users[sqlalchemy]
