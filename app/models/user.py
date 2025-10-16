@@ -3,9 +3,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from app.core.db import Base
 from fastapi_users.db import SQLAlchemyBaseUserTable
+from app.core.types.user_id import UserIdType
 
-
-class User(Base, SQLAlchemyBaseUserTable):
+class User(Base, SQLAlchemyBaseUserTable[UserIdType]):
     """
     Модель пользователя.
 
