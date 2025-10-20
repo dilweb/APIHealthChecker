@@ -1,11 +1,11 @@
-from sqlalchemy import String, Integer, DateTime, Boolean
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, Integer, DateTime, Boolean, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship, declared_attr
 from sqlalchemy.sql import func
 from app.core.db import Base
 from fastapi_users.db import SQLAlchemyBaseUserTable
-from app.core.types.user_id import UserIdType
 
-class User(Base, SQLAlchemyBaseUserTable[UserIdType]):
+
+class User(Base, SQLAlchemyBaseUserTable[int]):
     """
     Модель пользователя.
 
@@ -55,3 +55,5 @@ class User(Base, SQLAlchemyBaseUserTable[UserIdType]):
         cascade="all, delete-orphan",
         doc="Список мониторов, принадлежащих пользователю."
     )
+
+
