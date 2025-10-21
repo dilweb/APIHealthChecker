@@ -1,7 +1,7 @@
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Literal
-
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -45,4 +45,5 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# print(settings.database_url)
+print(settings.database_url)
+print(os.getenv("DB_HOST"))
