@@ -1,13 +1,15 @@
 from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from typing import Optional
+from datetime import datetime
 from fastapi_users import schemas
-from sqlalchemy import DateTime
 
 # ========================== User Schemas ========================== #
 
 class UserRead(schemas.BaseUser[int]):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    
     tg_id: Optional[int] = None
-    created_at: DateTime
+    created_at: datetime
 
 
 class UserCreate(schemas.BaseUserCreate):

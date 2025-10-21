@@ -12,8 +12,9 @@ from sqlalchemy.exc import IntegrityError
 from app.core.db import get_db
 
 from app.schemas.monitor import MonitorCreate, MonitorUpdate, MonitorOut
-from app.schemas.user import UserOut
+from app.schemas.user import UserRead
 from app.repositories import monitors as repo
+from app.api.routers.auth import current_active_user
 
 router = APIRouter(prefix="/api/monitors", tags=["monitors"])
 
@@ -22,7 +23,7 @@ router = APIRouter(prefix="/api/monitors", tags=["monitors"])
 async def create_monitor(
     payload: MonitorCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: UserOut = Depends(...),
+    current_user: UserRead = Depends(current_active_user),
 ) -> MonitorOut:
     """
     Create a new monitor for the current user.
@@ -64,7 +65,7 @@ async def create_monitor(
 @router.get("/", response_model=List[MonitorOut])
 async def list_monitors(
     db: AsyncSession = Depends(get_db),
-    current_user: UserOut = Depends(...),
+    current_user: UserRead = Depends(current_active_user),
     limit: int = 25,
     offset: int = 0,
 ) -> List[MonitorOut]:
@@ -86,7 +87,7 @@ async def list_monitors(
 async def get_monitor(
     monitor_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: UserOut = Depends(...),
+    current_user: UserRead = Depends(current_active_user),
 ) -> MonitorOut:
     """
     Get a single monitor by id limited to current user.
@@ -111,7 +112,7 @@ async def update_monitor(
     monitor_id: int,
     payload: MonitorUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: UserOut = Depends(...),
+    current_user: UserRead = Depends(current_active_user),
 ) -> MonitorOut:
     """
     Partially update a monitor owned by the current user.
@@ -149,7 +150,7 @@ async def update_monitor(
 async def delete_monitor(
     monitor_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: UserOut = Depends(...),
+    current_user: UserRead = Depends(current_active_user),
 ) -> None:
     """
     Delete a monitor owned by the current user.

@@ -9,4 +9,4 @@ from app.core.db import Base
 class AccessToken(SQLAlchemyBaseAccessTokenTable[int], Base):
     @declared_attr
     def user_id(cls) -> Mapped[int]:
-        return mapped_column(Integer, ForeignKey("user.id", ondelete="cascade"), nullable=False)
+        return mapped_column(Integer, ForeignKey("users.id", ondelete="cascade"), nullable=False)

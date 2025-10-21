@@ -1,0 +1,2 @@
+def manager():
+    return None
