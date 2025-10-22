@@ -37,13 +37,20 @@ class Settings(BaseSettings):
 
 
     # ========================== JWT ========================== #
+    # Возможно, стоит вынести в отдельный класс настроек, если будет JWT
     JWT_SECRET: str
     JWT_ALG: Literal["HS256"] = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+
+
+    # ========================== Auth Cookies ========================== #
+    AUTH_COOKIE_NAME: str = "fastapi_users_access_token"
+    AUTH_COOKIE_LIFETIME_MINUTES: int = 60 * 24
+    HTTPS_ENABLED: bool = os.getenv("HTTPS_ENABLED", "False").lower() in ("true", "1", "t") # Включение флага Secure
 
 
 settings = Settings()
 
-print(settings.database_url)
-print(os.getenv("DB_HOST"))
+
+# print(settings.database_url)
+# print(os.getenv("DB_HOST"))

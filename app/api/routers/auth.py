@@ -19,7 +19,7 @@ router = APIRouter()
 
 router.include_router(
     fastapi_users.get_auth_router(auth_backend, requires_verification=False), # TODO: change to True in production
-    prefix="/auth/jwt",
+    prefix="/auth/cookie", # Изменено с /auth/jwt
     tags=["auth"],
 )
 
@@ -50,5 +50,3 @@ router.include_router(
     prefix="/users",
     tags=["users"],
 )
-
-
