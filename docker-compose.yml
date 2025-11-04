@@ -56,9 +56,17 @@ services:
 
   maildev:
     image: maildev/maildev
+    environment:
+      - TZ=Asia/Almaty
+      - MAILDEV_WEB_PORT=1080
+      - MAILDEV_SMTP_PORT=1025
     ports:
-      - "1080:1080"
+      - "8080:1080"
       - "1025:1025"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
 
 volumes:
   pg_data:

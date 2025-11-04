@@ -1,2 +1,0 @@
-def manager():
-    return None

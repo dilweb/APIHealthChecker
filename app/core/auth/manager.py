@@ -28,6 +28,11 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
     ) -> None:
         print(f"Verification requested for user {user.id}. Verification token: {token}")
 
+        verification_link = "http://localhost:8000/docs#/auth/verify_verify_auth_verify_post"
+
+
+
+
 
 async def get_user_manager(user_db=Depends(get_user_db)):
     yield UserManager(user_db)
