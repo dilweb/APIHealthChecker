@@ -24,7 +24,7 @@ class User(Base, SQLAlchemyBaseUserTable[int]):
     tg_id: Mapped[int] = mapped_column(
         Integer,
         unique=True,
-        nullable=False,
+        nullable=True,
         doc="Уникальный Telegram ID пользователя."
     )
     email: Mapped[str] = mapped_column(

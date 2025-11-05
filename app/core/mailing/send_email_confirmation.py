@@ -5,30 +5,22 @@ from templates.jinja_templates import templates
 from app.core.mailing.send_email import send_email
 from app.models import User
 
-async def send_verification_email(
+async def send_email_confirmation(
         user: User,
-        verification_link: str,
-        verification_token: str
+
 ):
     recipient = user.email
-    subject = "Please verify your email address"
+    subject = "Email confirmed successfully"
     plain_content = dedent(
         f"""\
         Dear {recipient},
-
-        Please verify your email address by clicking on the following link:
-        {verification_link}
-        
-        Use this token to verify your email address: 
-        {verification_token}
+        Your email address has been successfully confirmed. 
         """
     )
 
-    template = templates.get_template("email-verify/verification-request.html")
+    template = templates.get_template("email-verify/email-verified.html")
     context = {
         "user": user,
-        "verification_link": verification_link,
-        "verification_token": verification_token,
     }
     html_content = template.render(context)
     await send_email(

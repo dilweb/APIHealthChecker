@@ -36,7 +36,7 @@ async def send_email(
 
     await aiosmtplib.send(
         message,
-        hostname="127.0.0.1",
+        hostname="maildev",
         port=1025
     )
 
