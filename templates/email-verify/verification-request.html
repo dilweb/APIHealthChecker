@@ -1,1 +1,16 @@
 {% extends "templates/base.html" %}
+
+{% block title %}Verify Your Email Address{% endblock %}
+
+{% block main %}
+    <h1>Verify Your Email Address</h1>
+    <p>Thank you, {{ user.email }} for signing up! Please verify your email address by clicking the link below:</p>
+    <p>
+        <a href="{{ verification_link }}">Verify Email Address</a>
+        <br>
+        And yse this token to verify your email address: <strong>{{ verification_token }}</strong>
+
+    </p>
+
+    <p>If you did not sign up for this account, please ignore this email.</p>
+{% endblock %}
