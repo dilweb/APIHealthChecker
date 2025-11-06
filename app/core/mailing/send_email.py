@@ -10,7 +10,7 @@ async def send_email(
     plain_content: str,
     html_content: str = "",
 ):
-    admin_email = "apihs@site.com"
+    admin_email = "apihc@site.com"
 
     message = MIMEMultipart("alternative")
     message["From"] = admin_email
