@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     DB_NAME: str
     API_DEBUG: bool = False
 
+    # ========================== Celery ========================== #
+    CELERY_BROKER_URL: str = "amqp://guest:guest@localhost:5672//"
+    CELERY_RESULT_BACKEND: str = "rpc://" # Или redis://localhost:6379/1, или db+postgresql://
+
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", env_file_encoding="utf-8")
 
     @property
@@ -50,7 +54,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
-
-# print(settings.database_url)
-# print(os.getenv("DB_HOST"))
