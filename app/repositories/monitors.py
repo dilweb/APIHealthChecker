@@ -11,151 +11,153 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.monitor import Monitor
 
 
-async def get_by_id_for_user(db: AsyncSession, *, user_id: int, monitor_id: int) -> Monitor | None:
-    """
-    Fetch a single monitor by id that belongs to the given user.
+class MonitorRepository:
+    def __init__(self, db: AsyncSession):
+        self.db = db
 
-    Args:
-        db: Async SQLAlchemy session.
-        user_id: Owner user id.
-        monitor_id: Target monitor id.
+    async def get_by_id_for_user(self, *, user_id: int, monitor_id: int) -> Monitor | None:
+        """
+        Fetch a single monitor by id that belongs to the given user.
 
-    Returns:
-        Monitor instance if found, otherwise None.
-    """
-    q = select(Monitor).where(Monitor.id == monitor_id, Monitor.user_id == user_id)
-    res = await db.execute(q)
-    return res.scalar_one_or_none()
+        Args:
+            user_id: Owner user id.
+            monitor_id: Target monitor id.
 
+        Returns:
+            Monitor instance if found, otherwise None.
+        """
+        q = select(Monitor).where(Monitor.id == monitor_id, Monitor.user_id == user_id)
+        res = await self.db.execute(q)
+        return res.scalar_one_or_none()
 
-async def list_for_user(
-    db: AsyncSession, *, user_id: int, limit: int = 25, offset: int = 0
-) -> Sequence[Monitor]:
-    """
-    List monitors for a user with pagination.
+    async def get_by_id(self, *, monitor_id: int) -> Monitor | None:
+        """
+        Fetch a single monitor by id.
+        Useful for Celery tasks where user_id might not be directly available.
+        """
+        q = select(Monitor).where(Monitor.id == monitor_id)
+        res = await self.db.execute(q)
+        return res.scalar_one_or_none()
 
-    Args:
-        db: Async SQLAlchemy session.
-        user_id: Owner user id.
-        limit: Max rows to return.
-        offset: Rows to skip.
+    async def list_for_user(
+        self, *, user_id: int, limit: int = 25, offset: int = 0
+    ) -> Sequence[Monitor]:
+        """
+        List monitors for a user with pagination.
 
-    Returns:
-        Sequence of Monitor instances.
-    """
-    q = (
-        select(Monitor)
-        .where(Monitor.user_id == user_id)
-        .order_by(Monitor.id)
-        .limit(limit)
-        .offset(offset)
-    )
-    res = await db.execute(q)
-    return res.scalars().all()
+        Args:
+            user_id: Owner user id.
+            limit: Max rows to return.
+            offset: Rows to skip.
 
+        Returns:
+            Sequence of Monitor instances.
+        """
+        q = (
+            select(Monitor)
+            .where(Monitor.user_id == user_id)
+            .order_by(Monitor.id)
+            .limit(limit)
+            .offset(offset)
+        )
+        res = await self.db.execute(q)
+        return res.scalars().all()
 
-async def exists_url_for_user(db: AsyncSession, *, user_id: int, url: str) -> bool:
-    """
-    Check if a monitor with the same URL already exists for a user.
+    async def exists_url_for_user(self, *, user_id: int, url: str) -> bool:
+        """
+        Check if a monitor with the same URL already exists for a user.
 
-    Args:
-        db: Async SQLAlchemy session.
-        user_id: Owner user id.
-        url: URL to check.
+        Args:
+            user_id: Owner user id.
+            url: URL to check.
 
-    Returns:
-        True if such monitor exists, else False.
-    """
-    q = select(Monitor.id).where(Monitor.user_id == user_id, Monitor.url == url).limit(1)
-    res = await db.execute(q)
-    return res.scalar_one_or_none() is not None
+        Returns:
+            True if such monitor exists, else False.
+        """
+        q = select(Monitor.id).where(Monitor.user_id == user_id, Monitor.url == url).limit(1)
+        res = await self.db.execute(q)
+        return res.scalar_one_or_none() is not None
 
+    async def create(
+        self,
+        *,
+        user_id: int,
+        name: str,
+        url: str,
+        method: str,
+        expected_status: int,
+        interval_s: int,
+        timeout_ms: int,
+    ) -> Monitor:
+        """
+        Create a new monitor for a user.
 
-async def create(
-    db: AsyncSession,
-    *,
-    user_id: int,
-    name: str,
-    url: str,
-    method: str,
-    expected_status: int,
-    interval_s: int,
-    timeout_ms: int,
-) -> Monitor:
-    """
-    Create a new monitor for a user.
+        Args:
+            user_id: Owner user id.
+            name: Human-readable monitor name.
+            url: Target URL (normalized string).
+            method: HTTP method.
+            expected_status: Expected HTTP status code.
+            interval_s: Check interval in seconds.
+            timeout_ms: Request timeout in milliseconds.
 
-    Args:
-        db: Async SQLAlchemy session.
-        user_id: Owner user id.
-        name: Human-readable monitor name.
-        url: Target URL (normalized string).
-        method: HTTP method.
-        expected_status: Expected HTTP status code.
-        interval_s: Check interval in seconds.
-        timeout_ms: Request timeout in milliseconds.
+        Returns:
+            Persisted Monitor instance (refreshed).
 
-    Returns:
-        Persisted Monitor instance (refreshed).
+        Notes:
+            Uses flush+refresh to populate autogenerated fields before commit.
+        """
+        obj = Monitor(
+            user_id=user_id,
+            name=name,
+            url=url,
+            method=method,
+            expected_status=expected_status,
+            interval_s=interval_s,
+            timeout_ms=timeout_ms,
+        )
+        self.db.add(obj)
+        await self.db.flush()
+        await self.db.refresh(obj)
+        return obj
 
-    Notes:
-        Uses flush+refresh to populate autogenerated fields before commit.
-    """
-    obj = Monitor(
-        user_id=user_id,
-        name=name,
-        url=url,
-        method=method,
-        expected_status=expected_status,
-        interval_s=interval_s,
-        timeout_ms=timeout_ms,
-    )
-    db.add(obj)
-    await db.flush()
-    await db.refresh(obj)
-    return obj
+    async def patch(
+        self, *, user_id: int, monitor_id: int, fields: dict
+    ) -> Monitor | None:
+        """
+        Partially update a monitor owned by a user.
 
+        Args:
+            user_id: Owner user id.
+            monitor_id: Target monitor id.
+            fields: Dict of fields to update.
 
-async def patch(
-    db: AsyncSession, *, user_id: int, monitor_id: int, fields: dict
-) -> Monitor | None:
-    """
-    Partially update a monitor owned by a user.
+        Returns:
+            Updated Monitor instance if found, else None.
 
-    Args:
-        db: Async SQLAlchemy session.
-        user_id: Owner user id.
-        monitor_id: Target monitor id.
-        fields: Dict of fields to update.
+        Notes:
+            Uses RETURNING to fetch the updated ORM row.
+        """
+        q = (
+            update(Monitor)
+            .where(Monitor.id == monitor_id, Monitor.user_id == user_id)
+            .values(**fields)
+            .returning(Monitor)
+        )
+        res = await self.db.execute(q)
+        return res.scalar_one_or_none()
 
-    Returns:
-        Updated Monitor instance if found, else None.
+    async def delete_for_user(self, *, user_id: int, monitor_id: int) -> bool:
+        """
+        Delete a monitor that belongs to a user.
 
-    Notes:
-        Uses RETURNING to fetch the updated ORM row.
-    """
-    q = (
-        update(Monitor)
-        .where(Monitor.id == monitor_id, Monitor.user_id == user_id)
-        .values(**fields)
-        .returning(Monitor)
-    )
-    res = await db.execute(q)
-    return res.scalar_one_or_none()
+        Args:
+            user_id: Owner user id.
+            monitor_id: Target monitor id.
 
-
-async def delete_for_user(db: AsyncSession, *, user_id: int, monitor_id: int) -> bool:
-    """
-    Delete a monitor that belongs to a user.
-
-    Args:
-        db: Async SQLAlchemy session.
-        user_id: Owner user id.
-        monitor_id: Target monitor id.
-
-    Returns:
-        True if a row was deleted, else False.
-    """
-    q = delete(Monitor).where(Monitor.id == monitor_id, Monitor.user_id == user_id)
-    res = await db.execute(q)
-    return res.rowcount > 0
+        Returns:
+            True if a row was deleted, else False.
+        """
+        q = delete(Monitor).where(Monitor.id == monitor_id, Monitor.user_id == user_id)
+        res = await self.db.execute(q)
+        return res.rowcount > 0

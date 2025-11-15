@@ -1,7 +1,7 @@
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Literal
-
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     DB_NAME: str
     API_DEBUG: bool = False
 
+    # ========================== Celery ========================== #
+    CELERY_BROKER_URL: str = "amqp://guest:guest@localhost:5672//"
+    CELERY_RESULT_BACKEND: str = "rpc://" # Или redis://localhost:6379/1, или db+postgresql://
+
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", env_file_encoding="utf-8")
 
     @property
@@ -37,12 +41,16 @@ class Settings(BaseSettings):
 
 
     # ========================== JWT ========================== #
+    # Возможно, стоит вынести в отдельный класс настроек, если будет JWT
     JWT_SECRET: str
     JWT_ALG: Literal["HS256"] = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
 
-settings = Settings()
+    # ========================== Auth Cookies ========================== #
+    AUTH_COOKIE_NAME: str = "fastapi_users_access_token"
+    AUTH_COOKIE_LIFETIME_MINUTES: int = 60 * 24
+    HTTPS_ENABLED: bool = os.getenv("HTTPS_ENABLED", "False").lower() in ("true", "1", "t") # Включение флага Secure
 
-# print(settings.database_url)
+
+settings = Settings()

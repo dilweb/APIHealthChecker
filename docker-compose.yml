@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: app
       POSTGRES_DB: app
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -16,6 +16,21 @@ services:
       timeout: 3s
       retries: 20
 
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    container_name: apihealth_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672" # Для RabbitMQ Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   app:
     build:
       context: .
@@ -23,28 +38,82 @@ services:
     container_name: apihealth_app
     environment:
       DB_HOST: postgres
-      DB_PORT: 5432
+      DB_PORT: 5433
       DB_USER: app
       DB_PASS: app
       DB_NAME: app
       API_DEBUG: "true"
       PYTHONPATH: /app
+      CELERY_BROKER_URL: "amqp://guest:guest@rabbitmq:5672//" # Обновляем URL брокера
+      CELERY_RESULT_BACKEND: "rpc://" # Или "redis://redis:6379/1" если используете Redis для бэкенда
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy # Зависимость от RabbitMQ
     ports:
       - "8000:8000"
     volumes:
       - .:/app
-
-    # Убрать --reload в продакшене
     command: >
       bash -c "
         set -e
         echo '--- Applying database migrations ---'
-        alembic upgrade head
+        alembic -c /app/alembic.ini upgrade head
         echo '--- Migrations applied, starting app ---'
         uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app
+      "
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: apihealth_celery_worker
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5433
+      DB_USER: app
+      DB_PASS: app
+      DB_NAME: app
+      PYTHONPATH: /app
+      CELERY_BROKER_URL: "amqp://guest:guest@rabbitmq:5672//"
+      CELERY_RESULT_BACKEND: "rpc://"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: >
+      bash -c "
+        celery -A app.celery.celery_app worker -l info -P eventlet
+      "
+
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: apihealth_celery_beat
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5433
+      DB_USER: app
+      DB_PASS: app
+      DB_NAME: app
+      PYTHONPATH: /app
+      CELERY_BROKER_URL: "amqp://guest:guest@rabbitmq:5672//"
+      CELERY_RESULT_BACKEND: "rpc://"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: >
+      bash -c "
+        celery -A app.celery.celery_app beat -l info --scheduler celery.beat.PersistentScheduler
       "
 
   adminer:
@@ -54,5 +123,23 @@ services:
     depends_on:
       - postgres
 
+  maildev:
+    image: maildev/maildev
+    environment:
+      - TZ=Asia/Almaty
+      - MAILDEV_WEB_PORT=1080
+      - MAILDEV_SMTP_PORT=1025
+    ports:
+      - "8081:1080"
+      - "1025:1025"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
 volumes:
   pg_data:
+  celery_beat_data: # Для сохранения состояния Celery Beat
+
+
+
