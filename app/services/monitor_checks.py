@@ -77,6 +77,8 @@ async def perform_monitor_check_async(
         ok=ok_status,
         error=error_message,
     )
+    await db.commit() # Фиксируем изменения здесь
+    await db.refresh(created_check) # Обновляем объект, чтобы получить актуальные данные (например, ID)
 
     print(
         f"Check for monitor_id={monitor_id} (URL: {url}): OK={ok_status}, "
@@ -109,7 +111,7 @@ async def perform_monitor_check_task(self, monitor_id: int):
             monitor.expected_status,
             timeout_s
         )
-        await session.commit() # Явно фиксируем изменения
+        # await session.commit() # Удаляем явный коммит отсюда
         print(f"Check for monitor_id={monitor.id} completed. Result ID: {check_result.id}")
         return check_result.id
 
@@ -124,7 +126,7 @@ async def main():
         # Важно: для этого нужно, чтобы в БД был монитор с ID 1
         from app.repositories.monitors import MonitorRepository
         monitor_repo = MonitorRepository(session)
-        test_monitor = await monitor_repo.get_by_id(monitor_id=3)
+        test_monitor = await monitor_repo.get_by_id(monitor_id=1)
         if test_monitor:
             check1 = await perform_monitor_check_async(session, test_monitor.id, test_monitor.url, test_monitor.expected_status, test_monitor.timeout_ms / 1000)
             print(f"Direct Check 1 result: id={check1.id}, ok={check1.ok}, status_code={check1.status_code}, latency={check1.latency_ms}ms, error={check1.error}")
@@ -133,6 +135,6 @@ async def main():
 
         print("To test Celery task, run Celery worker and beat, then trigger task via API or manually.")
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main())
 
